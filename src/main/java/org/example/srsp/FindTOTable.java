@@ -1,7 +1,7 @@
 package org.example.srsp;
 
 
-import org.apache.pdfbox.Loader;
+//import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.text.PDFTextStripper;
 
@@ -16,8 +16,9 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+
 public class FindTOTable {
-    private static final String pdf = "src/main/resources/2023grand.pdf";
+   /* private static final String pdf = "src/main/resources/2023grand.pdf";
     private static final String url = "jdbc:postgresql://localhost:5433/postgres";
     private static final String user = "postgres";
     private static final String passw  = "user";
@@ -91,7 +92,7 @@ public class FindTOTable {
             for(Student student: students){
                 saveStudentToDB(student);
             }
-        }
+        }*/
 
-    }
+    //}
 }
