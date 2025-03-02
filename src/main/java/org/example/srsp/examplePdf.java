@@ -1,92 +1,111 @@
 package org.example.srsp;
 
+import com.aspose.pdf.*;
+import com.aspose.pdf.Page;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import technology.tabula.*;
-import technology.tabula.extractors.SpreadsheetExtractionAlgorithm;
+
+
 
 import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
 
 public class examplePdf {
     public static void main(String[] args) {
-        try {
-            File pdfFile = new File("src/main/resources/2023grand.pdf");
-            PDDocument document = PDDocument.load(pdfFile);
-            ObjectExtractor extractor = new ObjectExtractor(document);
-            SpreadsheetExtractionAlgorithm sea = new SpreadsheetExtractionAlgorithm();
-            String currentHeader = ""; // Заголовок (профессия)
+        // Укажите путь к PDF-файлу
+        String pdfPath = "src/main/resources/2023grand.pdf";
 
-            for (PageIterator it = extractor.extract(); it.hasNext(); ) {
-                Page page = it.next();
-                List<Table> tables = sea.extract(page);
+        // Извлекаем данные
+        List<String[]> extractedData = extractTablesFromPDF(pdfPath);
 
-                // 1. Определяем заголовок (берем текст сверху таблицы)
-                String pageText = page.getText().toString().trim();
-                String[] lines = pageText.split("\n");
-                for (String line : lines) {
-                    if (line.matches("^[А-ЯЁ][а-яёA-Za-z\\s\\-]+$")) { // Заголовки (например, профессии)
-                        currentHeader = line.trim();
-                    }
+        // Сохраняем в БД
+        //saveToDatabase(extractedData);
+
+        if(extractedData != null){
+            System.out.println("Not empty");
+            for(String[] row : extractedData){
+                System.out.println(String.join(" | ",row));
+            }
+        }
+
+            System.out.println("empty");
+
+
+
+
+    }
+
+    // 📌 Метод для извлечения таблиц из PDF
+    public static List<String[]> extractTablesFromPDF(String pdfPath) {
+        List<String[]> tableData = new ArrayList<>();
+
+        // Загружаем PDF-документ
+        Document pdfDocument = new Document(pdfPath);
+
+        for (Page page : pdfDocument.getPages()) {
+            // 🟢 Извлекаем заголовки (можно адаптировать)
+            /*TextFragmentAbsorber absorber = new TextFragmentAbsorber(".*"); // Регулярка для всех текстов
+            page.accept(absorber);*/
+
+            /*String header = "";
+            for (TextFragment text : absorber.getTextFragments()) {
+                if (text.getText().matches("[A-Za-zА-Яа-я\\s]+")) { // Если текст похож на заголовок
+                    header = text.getText();
+                    break;
                 }
+            }*/
 
-                // 2. Обрабатываем таблицу
-                for (Table table : tables) {
-                    List<List<String>> processedRows = processTable(table);
-                    printTable(processedRows, currentHeader);
+            // 🟢 Ищем таблицы
+            TableAbsorber tableAbsorber = new TableAbsorber();
+            tableAbsorber.visit(page);
+
+            for (AbsorbedTable table : tableAbsorber.getTableList()) {
+                for (AbsorbedRow row : table.getRowList()) {
+                    List<String> rowData = new ArrayList<>();
+                   // rowData.add(header); // Добавляем заголовок в первую колонку
+                    for (AbsorbedCell cell : row.getCellList()) {
+                        rowData.add(cell.getTextFragments().get_Item(1).getText());
+                    }
+                    tableData.add(rowData.toArray(new String[0]));
                 }
             }
-            document.close();
-        } catch (IOException e) {
+        }
+
+        return tableData;
+    }
+
+    // 📌 Метод для сохранения данных в БД
+    /*public static void saveToDatabase(List<String[]> tableData) {
+        String url = "jdbc:postgresql://localhost:5432/mydb";
+        String user = "postgres";
+        String password = "password";
+
+        String sql = "INSERT INTO applicants (header, column1, column2, column3) VALUES (?, ?, ?, ?)";
+
+        try (Connection conn = DriverManager.getConnection(url, user, password);
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+
+            for (String[] row : tableData) {
+                pstmt.setString(1, row[0]);  // Заголовок
+                pstmt.setString(2, row.length > 1 ? row[1] : "");
+                pstmt.setString(3, row.length > 2 ? row[2] : "");
+                pstmt.setString(4, row.length > 3 ? row[3] : "");
+
+                pstmt.addBatch();
+            }
+
+            pstmt.executeBatch();
+            System.out.println("✅ Данные успешно загружены в БД");
+
+        } catch (Exception e) {
             e.printStackTrace();
         }
-    }
-
-    public static List<List<String>> processTable(Table table) {
-        List<List<String>> processedRows = new ArrayList<>();
-        int expectedColumns = 5; // Количество столбцов (№, ИКТ, ФИО, Баллы, ВУЗ)
-        List<String> currentRow = new ArrayList<>();
-
-        for (List<RectangularTextContainer> row : table.getRows()) {
-            List<String> rowData = new ArrayList<>();
-            for (RectangularTextContainer cell : row) {
-                rowData.add(cell.getText().trim());
-            }
-
-            if (rowData.isEmpty()) continue;
-
-            if (!currentRow.isEmpty() && rowData.size() < expectedColumns) {
-                // Если строка неполная, дополняем предыдущую строку
-                for (int i = 0; i < rowData.size(); i++) {
-                    int mergeIndex = i + (expectedColumns - rowData.size());
-                    if (mergeIndex < currentRow.size()) {
-                        currentRow.set(mergeIndex, currentRow.get(mergeIndex) + " " + rowData.get(i));
-                    }
-                }
-            } else {
-                if (!currentRow.isEmpty() && currentRow.size() == expectedColumns) {
-                    processedRows.add(new ArrayList<>(currentRow));
-                }
-                currentRow = rowData;
-            }
-        }
-
-        if (!currentRow.isEmpty() && currentRow.size() == expectedColumns) {
-            processedRows.add(currentRow);
-        }
-        return processedRows;
-    }
-
-    public static void printTable(List<List<String>> rows, String sectionTitle) {
-        System.out.println("\n🔹 Профессия: " + sectionTitle);
-        System.out.println("---------------------------------------------------");
-        for (List<String> row : rows) {
-            System.out.printf("%-5s | %-10s | %-40s | %-5s | %-5s%n",
-                    row.get(0), row.get(1), row.get(2), row.get(3), row.get(4));
-        }
-        System.out.println("---------------------------------------------------\n");
-    }
+    }*/
 }
 
 
