@@ -1,10 +1,6 @@
 package org.example.srsp;
 
-import com.aspose.pdf.Document;
 
-
-import org.apache.pdfbox.text.PDFTextStripper;
-import org.apache.pdfbox.text.PDFTextStripperByArea;
 import technology.tabula.*;
 
 
@@ -17,14 +13,10 @@ import javax.print.Doc;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
-import java.util.ArrayList;
+import java.sql.*;
+
 import java.util.List;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+
 
 public class pdf {
 
@@ -32,26 +24,13 @@ public class pdf {
     private static final String user = "postgres";
     private static final String passw = "user";
 
-    /* File file = new File("src/main/resources/2023grand.pdf");
-     try(PDDocument  document = PDDocument.load(file)) {
-
-
-         PDFTextStripperByArea stripper = new PDFTextStripperByArea();
-         stripper.addRegion("table", new Rectangle(50, 100, 500,-1)); // координаты области таблицы
-         stripper.extractRegions(document.getPage(0));
-         String tableText = stripper.getTextForRegion("table");
-         System.out.println(tableText);
-     }catch (IOException e){
-         e.printStackTrace();
-     }
-*/
     public static void main(String[] args) {
         String filePath = "src/main/resources/2023grand.pdf";
 
         try (FileInputStream fis = new FileInputStream(new File(filePath))) {
             PDDocument document = PDDocument.load(fis);
             ObjectExtractor extractor = new ObjectExtractor(document);
-            BasicExtractionAlgorithm bea = new BasicExtractionAlgorithm(); // Алгоритм извлечения
+            BasicExtractionAlgorithm bea = new BasicExtractionAlgorithm();
 
             for (int i = 0; i < document.getNumberOfPages(); i++) {
                 Page page = extractor.extract(i + 1);
@@ -83,11 +62,9 @@ public class pdf {
                                     Student student = new Student(values[1], values[2], score, uniCode);
                                     saveStudentToDB(student);
                                 } catch (NumberFormatException e) {
-                                    System.err.println("Ошибка парсинга чисел: " + e.getMessage());
+                                    System.err.println("Ошибка : " + e.getMessage());
                                 }
                             }
-                        } else if (row.size() <= 4) {
-                            continue;
                         }
                     }
                 }
@@ -101,13 +78,14 @@ public class pdf {
 
     private static void saveStudentToDB(Student student) {
         String checkQuery = "SELECT COUNT(*) FROM pdf_table WHERE IIN = ?";
+
         String insertQuery = "INSERT INTO pdf_table (IIN, name, score, uniCode) VALUES (?, ?, ?, ?)";
 
         try (Connection con = DriverManager.getConnection(url, user, passw)) {
             // Проверяем, существует ли студент с таким IIN
             try (PreparedStatement checkStmt = con.prepareStatement(checkQuery)) {
                 checkStmt.setString(1, student.getIIN());
-                var rs = checkStmt.executeQuery();
+                ResultSet rs = checkStmt.executeQuery();
                 if (rs.next() && rs.getInt(1) > 0) {
                     System.out.println("Студент с IIN " + student.getIIN() + " уже существует. Пропускаем.");
                     return;
@@ -131,5 +109,11 @@ public class pdf {
         }
     }
 
+/*SELECT * FROM public.pdf_table where name = 'Пашон Диас Дауылбайұлы';*/
+
+/*SELECT * FROM pdf_table WHERE iin = '001877893';
+SELECT * FROM public.pdf_table WHERE TRIM(name) = 'ПОШАН ДИАС ДАУЛБАЙҰЛЫ';
+
+SELECT * FROM pdf_table WHERE unicode = '13';*/
 
 }
