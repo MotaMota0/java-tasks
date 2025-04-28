@@ -5,13 +5,13 @@ public class Applicant {
     private String ictNumber;
     private String fullname;
     private int totalScore;
-    private String univercyCode;
+    private int univercyCode;
     private String proffession;
 
     public Applicant() {
     }
 
-    public Applicant(String ictNumber, String fullname, int totalScore, String univercyCode) {
+    public Applicant(String ictNumber, String fullname, int totalScore, int univercyCode) {
 
         this.ictNumber = ictNumber;
         this.fullname = fullname;
@@ -51,11 +51,11 @@ public class Applicant {
         this.totalScore = totalScore;
     }
 
-    public String getUnivercyCode() {
+    public int getUnivercyCode() {
         return univercyCode;
     }
 
-    public void setUnivercyCode(String univercyCode) {
+    public void setUnivercyCode(int univercyCode) {
         this.univercyCode = univercyCode;
     }
 
