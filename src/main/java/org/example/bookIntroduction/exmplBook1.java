@@ -12,6 +12,7 @@ import java.util.List;
 
 public class exmplBook1 {
 
+    private static BankStatementProcesser bankStatementProcesser;
     private static final String RESOURCES ="src/main/resources/memory.csv";
 
     /*public static void main(final String... args) throws IOException {
@@ -47,6 +48,7 @@ public class exmplBook1 {
         }
         System.out.println(total);
 
+        final List<BankTransaction> transactions = bankStatementProcesser.findTransacions(new BankTransactionIsInFebruaryAndExpensive());
     }
 
 }
